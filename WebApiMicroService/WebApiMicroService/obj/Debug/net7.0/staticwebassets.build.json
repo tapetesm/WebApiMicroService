@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "vHJ8Hp7L76KhAEMvFujhigp8N9NrWgfEXrEzzHg/vVY=",
+  "Source": "WebApiMicroService",
+  "BasePath": "_content/WebApiMicroService",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
