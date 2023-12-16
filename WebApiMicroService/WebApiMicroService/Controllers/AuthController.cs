@@ -11,6 +11,8 @@ using System.Text.Unicode;
 using HtmlAgilityPack;
 using System.Xml.Linq;
 using System.Web;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
 
 namespace WebApiMicroService.Controllers
 {
@@ -196,13 +198,41 @@ namespace WebApiMicroService.Controllers
                                                     }
                                                 }
                                             }
-                                            var options = new JsonSerializerOptions
+                                            using (var dbContext = new AppDbContext())
                                             {
-                                                Encoder = JavaScriptEncoder.Create(UnicodeRanges.BasicLatin, UnicodeRanges.Cyrillic),
-                                                WriteIndented = true
-                                            };
-                                            var json = JsonSerializer.Serialize(person, options);
-                                            return Ok(json);
+                                                var users = dbContext.Users.ToList();
+                                                var log = GetHash(auth.username);
+                                                var pass = GetHash(auth.password);
+                                                var user = users.FirstOrDefault(x=> x.login == log && x.password == pass);
+                                                if (user == null)
+                                                {
+                                                    dbContext.Add(new User()
+                                                    {
+                                                        login = log,
+                                                        password = pass,
+                                                        firstname = person.FirstName,
+                                                        lastname = person.LastName,
+                                                        middlename = person.MiddleName,
+                                                        email = person.listCard[0].listPoint[0].listText[0],
+                                                        hide_contacts = true  
+                                                    });
+                                                    await dbContext.SaveChangesAsync();
+                                                }
+                                                var academics = dbContext.AcademicSubjects.ToList();
+                                                var listAcademic = person.listCard[2].listPoint[0].listText;
+                                                for (int i = 0; i < listAcademic.Count; i++)
+                                                {
+                                                    if (academics.FirstOrDefault(x => x.name == listAcademic[i]) == null)
+                                                    {
+                                                        dbContext.Add(new AcademicSubject()
+                                                        {
+                                                            name = listAcademic[i]
+                                                        });
+                                                    }
+                                                }
+                                                await dbContext.SaveChangesAsync();
+                                            }
+                                            return Ok();
                                         }
                                     }
                                     else
@@ -256,6 +286,12 @@ namespace WebApiMicroService.Controllers
             client.DefaultRequestHeaders.Add("Sec-Ch-Ua", "\"Chromium\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"YaBrowser\";v=\"23\"");
             client.DefaultRequestHeaders.Add("Sec-Ch-Ua-Mobile", "?0");
             client.DefaultRequestHeaders.Add("Sec-Ch-Ua-Platform", "\"Windows\"");            
+        }
+        private string GetHash(string input)
+        {
+            var md5 = MD5.Create();
+            var hash = md5.ComputeHash(Encoding.UTF8.GetBytes(input));
+            return Convert.ToBase64String(hash);
         }
     }
     public class Auth
